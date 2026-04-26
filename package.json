@@ -40,5 +40,13 @@
     "prisma": "^6.19.3",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XuanHuu2906/ThucTapCoSo-backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/XuanHuu2906/ThucTapCoSo-backend/issues"
+  },
+  "homepage": "https://github.com/XuanHuu2906/ThucTapCoSo-backend#readme"
 }
