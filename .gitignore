@@ -3,3 +3,8 @@ dist/
 .env
 .env.test
 *.log
+DB_Design.md
+backend-structure.md
+task.md
+Use_case_modeling.md
+functional_requirement.md
