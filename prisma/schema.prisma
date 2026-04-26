@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// 1. USER
+model User {
+  userId    Int      @id @default(autoincrement()) @map("UserID")
+  fullName  String   @map("FullName") @db.NVarChar(100)
+  email     String   @unique @map("Email") @db.VarChar(150)
+  password  String   @map("Password") @db.VarChar(255)
+  role      String   @map("Role") // Admin, Recruiter, HiringManager, Director, Probationer
+  status    String   @default("Active") @map("Status") // Active, Inactive
+  createdAt DateTime @default(now()) @map("CreatedAt")
+
+  jobPostings          JobPosting[]          @relation("PostedJobs")
+  managedApplications  Application[]         @relation("ManagedApplications")
+  interviews           Interview[]           @relation("Interviewers")
+  createdOffers        Offer[]               @relation("CreatedOffers")
+  approvedOffers       Offer[]               @relation("ApprovedOffers")
+  probationersInfo     Probation[]           @relation("Probationers")
+  supervisedProbations Probation[]           @relation("Supervisors")
+  submittedEvaluations ProbationEvaluation[] @relation("SubmittedEvaluations")
+  approvedEvaluations  ProbationEvaluation[] @relation("ApprovedEvaluations")
+
+  @@map("User")
+}
+
+// 2. CANDIDATE
+model Candidate {
+  candidateId Int      @id @default(autoincrement()) @map("CandidateID")
+  fullName    String   @map("FullName") @db.NVarChar(100)
+  email       String   @unique @map("Email") @db.VarChar(150)
+  phone       String?  @map("Phone") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+
+  applications Application[]
+
+  @@map("Candidate")
+}
+
+// 3. JOB POSTING
+model JobPosting {
+  jobId        Int      @id @default(autoincrement()) @map("JobID")
+  postedBy     Int      @map("PostedBy")
+  deptName     String   @map("DeptName") @db.NVarChar(100)
+  title        String   @map("Title") @db.NVarChar(200)
+  description  String?  @map("Description") @db.NText
+  requirements String?  @map("Requirements") @db.NText
+  salaryRange  String?  @map("SalaryRange") @db.VarChar(100)
+  startDate    DateTime @map("StartDate") @db.Date
+  endDate      DateTime @map("EndDate") @db.Date
+  type         String   @default("full-time") @map("JobType") @db.VarChar(50)
+  experienceLevel String @default("fresher") @map("ExperienceLevel") @db.VarChar(50)
+  location     String   @default("Hà Nội") @map("Location") @db.NVarChar(200)
+  headcount    Int      @default(1) @map("Headcount")
+  status       String   @default("Draft") @map("Status") // Draft, Open, Closed
+  createdAt    DateTime @default(now()) @map("CreatedAt")
+
+  postedByUser User          @relation("PostedJobs", fields: [postedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+  applications Application[]
+
+  @@map("JobPosting")
+}
+
+// 4. APPLICATION
+model Application {
+  appId       Int      @id @default(autoincrement()) @map("AppID")
+  jobId       Int      @map("JobID")
+  candidateId Int      @map("CandidateID")
+  managedBy   Int?     @map("ManagedBy")
+  appliedDate DateTime @default(now()) @map("AppliedDate")
+  cvFile      String?  @map("CV_File") @db.VarChar(500)
+  status      String   @default("New") @map("Status") // New, Screening, Shortlisted, Interviewing, Offered, Hired, Rejected, Withdrawn
+
+  jobPosting    JobPosting @relation(fields: [jobId], references: [jobId], onUpdate: NoAction, onDelete: NoAction)
+  candidate     Candidate  @relation(fields: [candidateId], references: [candidateId], onUpdate: NoAction, onDelete: NoAction)
+  managedByUser User?      @relation("ManagedApplications", fields: [managedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  interviews Interview[]
+  offer      Offer?
+
+  @@unique([jobId, candidateId], map: "uq_application")
+  @@map("Application")
+}
+
+// 5. INTERVIEW
+model Interview {
+  interviewId    Int      @id @default(autoincrement()) @map("InterviewID")
+  appId          Int      @map("AppID")
+  interviewerId  Int      @map("InterviewerID")
+  interviewDate  DateTime @map("InterviewDate")
+  location       String?  @map("Location") @db.VarChar(200)
+  type           String   @map("Type") // HR, Technical, Final
+  confirmStatus  String   @default("Pending") @map("ConfirmStatus") // Pending, Confirmed, Declined
+  technicalScore Int?     @map("TechnicalScore") @db.TinyInt
+  softScore      Int?     @map("SoftScore") @db.TinyInt
+  attitudeScore  Int?     @map("AttitudeScore") @db.TinyInt
+  result         String   @default("Pending") @map("Result") // Pass, Fail, Pending
+  feedback       String?  @map("Feedback") @db.NText
+  createdAt      DateTime @default(now()) @map("CreatedAt")
+
+  application Application @relation(fields: [appId], references: [appId], onUpdate: NoAction, onDelete: NoAction)
+  interviewer User        @relation("Interviewers", fields: [interviewerId], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("Interview")
+}
+
+// 6. OFFER
+model Offer {
+  offerId      Int      @id @default(autoincrement()) @map("OfferID")
+  appId        Int      @unique @map("AppID")
+  createdBy    Int      @map("CreatedBy")
+  approvedBy   Int?     @map("ApprovedBy")
+  baseSalary   Decimal  @map("BaseSalary") @db.Decimal(15, 2)
+  allowance    Decimal  @default(0) @map("Allowance") @db.Decimal(15, 2)
+  startDate    DateTime @map("StartDate") @db.Date
+  status       String   @default("Pending") @map("Status") // Pending, Approved, Sent, Accepted, Rejected, Declined
+  directorNote String?  @map("DirectorNote") @db.NText
+  createdAt    DateTime @default(now()) @map("CreatedAt")
+
+  application    Application @relation(fields: [appId], references: [appId], onUpdate: NoAction, onDelete: NoAction)
+  createdByUser  User        @relation("CreatedOffers", fields: [createdBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+  approvedByUser User?       @relation("ApprovedOffers", fields: [approvedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  probation Probation?
+
+  @@map("Offer")
+}
+
+// 7. PROBATION
+model Probation {
+  probationId   Int      @id @default(autoincrement()) @map("ProbationID")
+  offerId       Int      @unique @map("OfferID")
+  probationerId Int      @map("ProbationerID")
+  supervisorId  Int?     @map("SupervisorID")
+  startDate     DateTime @map("StartDate") @db.Date
+  endDate       DateTime @map("EndDate") @db.Date
+  status        String   @default("Ongoing") @map("Status") // Ongoing, PendingEvaluation, PendingApproval, Pass, Fail
+  createdAt     DateTime @default(now()) @map("CreatedAt")
+
+  offer       Offer @relation(fields: [offerId], references: [offerId], onUpdate: NoAction, onDelete: NoAction)
+  probationer User  @relation("Probationers", fields: [probationerId], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+  supervisor  User? @relation("Supervisors", fields: [supervisorId], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  evaluation ProbationEvaluation?
+
+  @@map("Probation")
+}
+
+// 8. PROBATION EVALUATION
+model ProbationEvaluation {
+  evalId         Int       @id @default(autoincrement()) @map("EvalID")
+  probationId    Int       @unique @map("ProbationID")
+  submittedBy    Int       @map("SubmittedBy")
+  approvedBy     Int?      @map("ApprovedBy")
+  kpiScore       Int?      @map("KPIScore") @db.TinyInt
+  comment        String?   @map("Comment") @db.NText
+  recommendation String?   @map("Recommendation") // Pass, Fail
+  directorNote   String?   @map("DirectorNote") @db.NText
+  status         String    @default("Draft") @map("Status") // Draft, Submitted, PendingApproval, Approved, Rejected
+  submittedAt    DateTime? @map("SubmittedAt")
+  approvedAt     DateTime? @map("ApprovedAt")
+
+  probation       Probation @relation(fields: [probationId], references: [probationId], onUpdate: NoAction, onDelete: NoAction)
+  submittedByUser User      @relation("SubmittedEvaluations", fields: [submittedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+  approvedByUser  User?     @relation("ApprovedEvaluations", fields: [approvedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("ProbationEvaluation")
+}
