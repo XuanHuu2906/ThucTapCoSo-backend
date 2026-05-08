@@ -16,6 +16,7 @@ const router = Router();
 router.use(authMiddleware);
 
 // Get lists and details
+router.get('/ending-soon', probationController.getEndingSoon);
 router.get('/', probationController.getProbations);
 router.get('/:id', probationController.getProbationById);
 

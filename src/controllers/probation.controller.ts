@@ -4,10 +4,26 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 
 export class ProbationController {
+  async getEndingSoon(req: Request, res: Response, next: NextFunction) {
+    try {
+      const probations = await probationService.getEndingSoon();
+      sendSuccess(res, probations, 'Ending soon probations retrieved', HTTP_STATUS.OK);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getProbations(req: Request, res: Response, next: NextFunction) {
     try {
       const { status } = req.query;
-      const filters = { status: status as string };
+      const filters: any = { status: status as string };
+
+      // REQ-020: Nếu tài khoản là Probationer, chỉ được xem bản ghi của chính mình
+      if (req.user!.role === 'Probationer') {
+        filters.probationerId = parseInt(req.user!.id);
+      } else if (req.user!.role === 'HiringManager') {
+        filters.supervisorId = parseInt(req.user!.id);
+      }
 
       const probations = await probationService.getProbations(filters);
       sendSuccess(res, probations, 'Probations retrieved successfully', HTTP_STATUS.OK);

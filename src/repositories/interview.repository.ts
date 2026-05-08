@@ -114,9 +114,27 @@ export class InterviewRepository {
     result: string;
     feedback?: string;
   }) {
-    return prisma.interview.update({
-      where: { interviewId },
-      data,
+    return prisma.$transaction(async (tx) => {
+      // 1. Cập nhật điểm và kết quả phỏng vấn
+      const interview = await tx.interview.update({
+        where: { interviewId },
+        data,
+      });
+
+      // 2. Tự động cập nhật trạng thái Application dựa trên kết quả phỏng vấn
+      if (data.result === 'Pass') {
+        await tx.application.update({
+          where: { appId: interview.appId },
+          data: { status: 'InterviewPassed' },
+        });
+      } else if (data.result === 'Fail') {
+        await tx.application.update({
+          where: { appId: interview.appId },
+          data: { status: 'InterviewFailed' },
+        });
+      }
+
+      return interview;
     });
   }
 

@@ -84,6 +84,46 @@ export class OfferController {
       next(error);
     }
   }
+
+  // ===== UC-10: Public endpoints cho ứng viên phản hồi Offer qua email =====
+
+  async getOfferByToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const offer = await offerService.getOfferByToken(token);
+      sendSuccess(res, {
+        candidateName: offer.application?.candidate?.fullName,
+        jobTitle: offer.application?.jobPosting?.title,
+        baseSalary: offer.baseSalary,
+        allowance: offer.allowance,
+        startDate: offer.startDate,
+        status: offer.status,
+      }, 'Offer info retrieved', HTTP_STATUS.OK);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async acceptOfferByToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const result = await offerService.respondToOffer(token, 'accept');
+      sendSuccess(res, result, 'Offer accepted successfully', HTTP_STATUS.OK);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async declineOfferByToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token } = req.params;
+      const { reason } = req.body;
+      const result = await offerService.respondToOffer(token, 'decline', reason);
+      sendSuccess(res, result, 'Offer declined successfully', HTTP_STATUS.OK);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const offerController = new OfferController();

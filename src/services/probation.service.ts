@@ -2,8 +2,13 @@ import { probationRepository } from '../repositories/probation.repository.js';
 import { offerRepository } from '../repositories/offer.repository.js';
 import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
+import { emailService } from './email.service.js';
 
 export class ProbationService {
+  async getEndingSoon() {
+    return probationRepository.findEndingSoon(7);
+  }
+
   async getProbations(filters: any) {
     return probationRepository.findAll(filters);
   }
@@ -87,11 +92,25 @@ export class ProbationService {
       throw new AppError('Evaluation is not pending approval', HTTP_STATUS.BAD_REQUEST);
     }
 
-    return probationRepository.approveEvaluation(probation.evaluation.evalId, {
+    const result = await probationRepository.approveEvaluation(probation.evaluation.evalId, {
       status,
       approvedBy: userId,
       directorNote,
     });
+
+    // REQ-025: Gửi email thông báo kết quả thử việc cho nhân viên sau khi Director phê duyệt
+    if (status === 'Approved') {
+      emailService.sendProbationResult(
+        probation.probationer.email,
+        probation.probationer.fullName,
+        {
+          recommendation: result.recommendation,
+          note: directorNote
+        }
+      );
+    }
+
+    return result;
   }
 }
 
