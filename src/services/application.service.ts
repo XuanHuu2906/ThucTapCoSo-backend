@@ -2,6 +2,7 @@ import { applicationRepository } from '../repositories/application.repository.js
 import { jobRepository } from '../repositories/job.repository.js';
 import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
+import { emailService } from './email.service.js';
 
 export class ApplicationService {
   async getApplications(filters: { jobId?: number; status?: string }) {
@@ -35,8 +36,12 @@ export class ApplicationService {
     try {
       const application = await applicationRepository.createApplicationWithCandidate(data);
       
-      // In a real app, trigger an async job here to send confirmation email
-      // sendConfirmationEmail(application.candidate.email, job.title);
+      // REQ-007: Send confirmation email asynchronously
+      emailService.sendApplicationConfirmation(
+        data.email, 
+        data.fullName, 
+        job.title
+      );
 
       return application;
     } catch (error: any) {
@@ -53,7 +58,19 @@ export class ApplicationService {
       throw new AppError('Application not found', HTTP_STATUS.NOT_FOUND);
     }
 
-    return applicationRepository.updateStatus(appId, status, userId);
+    const updated = await applicationRepository.updateStatus(appId, status, userId);
+
+    // REQ-010: Send rejection email
+    if (status === 'Rejected') {
+      const job = await jobRepository.findById(application.jobId);
+      emailService.sendApplicationRejection(
+        application.candidate.email,
+        application.candidate.fullName,
+        job?.title || 'Vị trí đã ứng tuyển'
+      );
+    }
+
+    return updated;
   }
 }
 

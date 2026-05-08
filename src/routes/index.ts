@@ -4,6 +4,7 @@ import jobRoutes from './v1/job.routes.js';
 import applicationRoutes from './v1/application.routes.js';
 import interviewRoutes from './v1/interview.routes.js';
 import offerRoutes from './v1/offer.routes.js';
+import offerResponseRoutes from './v1/offer-response.routes.js';
 import probationRoutes from './v1/probation.routes.js';
 import userRoutes from './v1/user.routes.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
@@ -21,6 +22,7 @@ router.use('/jobs', jobRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/interviews', interviewRoutes);
 router.use('/offers', offerRoutes);
+router.use('/offer-response', offerResponseRoutes); // UC-10: Public (không cần auth)
 router.use('/probations', probationRoutes);
 router.use('/users', userRoutes);
 

@@ -92,6 +92,44 @@ export class OfferRepository {
       where: { offerId },
     });
   }
+
+  async findByToken(token: string) {
+    return prisma.offer.findFirst({
+      where: { decisionToken: token },
+      include: {
+        application: {
+          include: {
+            candidate: true,
+            jobPosting: true,
+          },
+        },
+        createdByUser: {
+          select: { fullName: true, email: true, role: true },
+        },
+      },
+    });
+  }
+
+  async clearToken(offerId: number) {
+    return prisma.offer.update({
+      where: { offerId },
+      data: { decisionToken: null },
+    });
+  }
+
+  async setDecisionToken(offerId: number, token: string) {
+    return prisma.offer.update({
+      where: { offerId },
+      data: { decisionToken: token },
+    });
+  }
+
+  async setDeclineReason(offerId: number, reason: string) {
+    return prisma.offer.update({
+      where: { offerId },
+      data: { declineReason: reason },
+    });
+  }
 }
 
 export const offerRepository = new OfferRepository();

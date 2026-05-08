@@ -3,9 +3,42 @@ import { Prisma } from '@prisma/client';
 import { hashPassword } from '../utils/crypto.js';
 
 export class ProbationRepository {
-  async findAll(filters: { status?: string }) {
+  async findEndingSoon(daysAhead: number = 7) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const futureDate = new Date(now);
+    futureDate.setDate(futureDate.getDate() + daysAhead);
+
+    return prisma.probation.findMany({
+      where: {
+        status: { notIn: ['Pass', 'Fail'] },
+        endDate: {
+          gte: now,
+          lte: futureDate,
+        },
+      },
+      orderBy: { endDate: 'asc' },
+      include: {
+        offer: {
+          include: {
+            application: {
+              include: { jobPosting: true },
+            },
+          },
+        },
+        probationer: { select: { fullName: true, email: true } },
+        supervisor: { select: { fullName: true, email: true } },
+        evaluation: true,
+      },
+    });
+  }
+
+  async findAll(filters: { status?: string; probationerId?: number; supervisorId?: number }) {
     const where: Prisma.ProbationWhereInput = {};
     if (filters.status) where.status = filters.status;
+    if (filters.probationerId) where.probationerId = filters.probationerId;
+    if (filters.supervisorId) where.supervisorId = filters.supervisorId;
 
     return prisma.probation.findMany({
       where,
@@ -14,7 +47,7 @@ export class ProbationRepository {
         offer: {
           include: {
             application: {
-              include: { jobPosting: true },
+              include: { jobPosting: true, candidate: true },
             },
           },
         },
@@ -32,7 +65,7 @@ export class ProbationRepository {
         offer: {
           include: {
             application: {
-              include: { jobPosting: true },
+              include: { jobPosting: true, candidate: true },
             },
           },
         },
@@ -62,7 +95,7 @@ export class ProbationRepository {
       });
 
       if (!offer) throw new Error('Offer not found');
-      
+
       const candidate = offer.application.candidate;
 
       // 2. Find or create Probationer User account

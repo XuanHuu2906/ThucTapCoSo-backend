@@ -119,9 +119,11 @@ model Offer {
   baseSalary   Decimal  @map("BaseSalary") @db.Decimal(15, 2)
   allowance    Decimal  @default(0) @map("Allowance") @db.Decimal(15, 2)
   startDate    DateTime @map("StartDate") @db.Date
-  status       String   @default("Pending") @map("Status") // Pending, Approved, Sent, Accepted, Rejected, Declined
-  directorNote String?  @map("DirectorNote") @db.NText
-  createdAt    DateTime @default(now()) @map("CreatedAt")
+  status        String   @default("Pending") @map("Status") // Pending, Approved, Accepted, Rejected, Declined
+  directorNote  String?  @map("DirectorNote") @db.NText
+  decisionToken String?  @map("DecisionToken") @db.VarChar(128)
+  declineReason String?  @map("DeclineReason") @db.NText
+  createdAt     DateTime @default(now()) @map("CreatedAt")
 
   application    Application @relation(fields: [appId], references: [appId], onUpdate: NoAction, onDelete: NoAction)
   createdByUser  User        @relation("CreatedOffers", fields: [createdBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)

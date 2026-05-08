@@ -8,9 +8,14 @@ export class InterviewController {
     try {
       const { appId, interviewerId, type, confirmStatus, result } = req.query;
       
+      let finalInterviewerId = interviewerId ? parseInt(interviewerId as string) : undefined;
+      if (req.user!.role === 'HiringManager') {
+        finalInterviewerId = parseInt(req.user!.id);
+      }
+
       const filters = {
         appId: appId ? parseInt(appId as string) : undefined,
-        interviewerId: interviewerId ? parseInt(interviewerId as string) : undefined,
+        interviewerId: finalInterviewerId,
         type: type as string,
         confirmStatus: confirmStatus as string,
         result: result as string,
