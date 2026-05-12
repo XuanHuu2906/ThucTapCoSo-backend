@@ -90,7 +90,7 @@ export class OfferController {
   async getOfferByToken(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.params;
-      const offer = await offerService.getOfferByToken(token);
+      const offer = await offerService.getOfferByToken(token as string);
       sendSuccess(res, {
         candidateName: offer.application?.candidate?.fullName,
         jobTitle: offer.application?.jobPosting?.title,
@@ -107,7 +107,7 @@ export class OfferController {
   async acceptOfferByToken(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.params;
-      const result = await offerService.respondToOffer(token, 'accept');
+      const result = await offerService.respondToOffer(token as string, 'accept');
       sendSuccess(res, result, 'Offer accepted successfully', HTTP_STATUS.OK);
     } catch (error) {
       next(error);
@@ -118,7 +118,7 @@ export class OfferController {
     try {
       const { token } = req.params;
       const { reason } = req.body;
-      const result = await offerService.respondToOffer(token, 'decline', reason);
+      const result = await offerService.respondToOffer(token as string, 'decline', reason);
       sendSuccess(res, result, 'Offer declined successfully', HTTP_STATUS.OK);
     } catch (error) {
       next(error);
