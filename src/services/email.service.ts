@@ -11,7 +11,7 @@ if (!process.env.RESEND_API_KEY) {
   console.warn('⚠️ CẢNH BÁO: Chưa tìm thấy biến môi trường RESEND_API_KEY trong file .env');
   console.warn('⚠️ Việc gửi email sẽ thất bại cho đến khi bạn cung cấp API Key hợp lệ.');
 }
-const SENDER_EMAIL = 'onboarding@resend.dev'; // Using the default free-tier sender for now
+const SENDER_EMAIL = 'no-reply@huunguyen.xyz'; // Using the default free-tier sender for now
 
 export const emailService = {
   /**
