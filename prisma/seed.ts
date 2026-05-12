@@ -16,18 +16,18 @@ async function main() {
   await prisma.candidate.deleteMany();
   await prisma.user.deleteMany();
 
-  // Reset auto-increments (SQL Server specific: DBCC CHECKIDENT)
+  // Reset sequences (PostgreSQL)
   try {
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[User]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[Candidate]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[JobPosting]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[Application]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[Interview]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[Offer]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[Probation]', RESEED, 0);`);
-    await prisma.$executeRawUnsafe(`DBCC CHECKIDENT ('[ProbationEvaluation]', RESEED, 0);`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "User_UserID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Candidate_CandidateID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "JobPosting_JobID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Application_AppID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Interview_InterviewID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Offer_OfferID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "Probation_ProbationID_seq" RESTART WITH 1;`);
+    await prisma.$executeRawUnsafe(`ALTER SEQUENCE "ProbationEvaluation_EvalID_seq" RESTART WITH 1;`);
   } catch (e) {
-    console.log('Skipping RE-SEED auto increments (only works in SQL Server if table has rows)');
+    console.log('Skipping RE-SEED sequences');
   }
 
   const defaultPassword = await bcrypt.hash('123456', 10);
