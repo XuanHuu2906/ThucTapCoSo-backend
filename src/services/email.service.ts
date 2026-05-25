@@ -66,7 +66,7 @@ export const emailService = {
    * REQ-012: Gửi email mời phỏng vấn
    * UC-06: Bao gồm link xác nhận/từ chối cho ứng viên
    */
-  async sendInterviewInvitation(email: string, candidateName: string, jobTitle: string, interviewDetails: any) {
+  async sendInterviewInvitation(email: string, candidateName: string, jobTitle: string, interviewDetails: any, isRescheduled: boolean = false) {
     try {
       const formattedDate = new Date(interviewDetails.interviewDate).toLocaleString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh',
@@ -75,21 +75,25 @@ export const emailService = {
       });
 
       const confirmUrl = interviewDetails.confirmUrl;
+      const title = isRescheduled ? 'Thông báo thay đổi lịch phỏng vấn' : 'Thư mời phỏng vấn';
+      const subject = isRescheduled ? `Thay đổi lịch phỏng vấn - Vị trí ${jobTitle}` : `Thư mời tham gia phỏng vấn - Vị trí ${jobTitle}`;
+      const subtitle = isRescheduled ? 'Lịch phỏng vấn của bạn đã được cập nhật' : 'Chúc mừng bạn đã vượt qua vòng sơ loại hồ sơ';
+      const introText = isRescheduled ? `Chúng tôi xin thông báo lịch phỏng vấn cho vị trí <strong style="color: #667eea;">${jobTitle}</strong> đã được thay đổi với thông tin chi tiết mới như sau:` : `Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn cho vị trí <strong style="color: #667eea;">${jobTitle}</strong> với thông tin chi tiết như sau:`;
 
       await resend.emails.send({
         from: `Recruitment System <${SENDER_EMAIL}>`,
         to: email,
-        subject: `Thư mời tham gia phỏng vấn - Vị trí ${jobTitle}`,
+        subject: subject,
         html: `
           <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Thư mời phỏng vấn</h1>
-              <p style="color: #e8e0ff; margin-top: 8px; font-size: 14px;">Chúc mừng bạn đã vượt qua vòng sơ loại hồ sơ</p>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${title}</h1>
+              <p style="color: #e8e0ff; margin-top: 8px; font-size: 14px;">${subtitle}</p>
             </div>
 
             <div style="padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
               <h3 style="color: #1f2937; margin-top: 0;">Xin chào ${candidateName},</h3>
-              <p style="color: #4b5563; line-height: 1.6;">Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn cho vị trí <strong style="color: #667eea;">${jobTitle}</strong> với thông tin chi tiết như sau:</p>
+              <p style="color: #4b5563; line-height: 1.6;">${introText}</p>
 
               <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
                 <table style="width: 100%; border-collapse: collapse;">
@@ -108,11 +112,10 @@ export const emailService = {
                 </table>
               </div>
 
-              <p style="color: #4b5563; line-height: 1.6;">Vui lòng xác nhận tham gia bằng cách chọn một trong hai lựa chọn bên dưới:</p>
+              <p style="color: #4b5563; line-height: 1.6;">Vui lòng ấn vào nút bên dưới để xem chi tiết và xác nhận tham gia hoặc từ chối lịch phỏng vấn này:</p>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${confirmUrl}?action=confirm" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; margin-right: 12px;">✅ Đồng ý tham gia</a>
-                <a href="${confirmUrl}?action=decline" style="display: inline-block; background: #ffffff; color: #ef4444; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; border: 2px solid #ef4444;">❌ Từ chối</a>
+                <a href="${confirmUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">🔍 Xem chi tiết & Phản hồi</a>
               </div>
 
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
@@ -170,17 +173,15 @@ export const emailService = {
                 </table>
               </div>
 
-              <p style="color: #4b5563; line-height: 1.6;">Vui lòng phản hồi bằng cách chọn một trong hai lựa chọn bên dưới:</p>
+              <p style="color: #4b5563; line-height: 1.6;">Vui lòng ấn vào nút bên dưới để xem chi tiết Offer và phản hồi chấp nhận hoặc từ chối:</p>
 
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${offerDetails.acceptUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; margin-right: 12px;">✅ Chấp nhận Offer</a>
-                <a href="${offerDetails.declineUrl}" style="display: inline-block; background: #ffffff; color: #ef4444; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; border: 2px solid #ef4444;">❌ Từ chối Offer</a>
+                <a href="${offerDetails.responseUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">🔍 Xem chi tiết & Phản hồi</a>
               </div>
 
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
-              <p style="color: #9ca3af; font-size: 12px; text-align: center;">Nếu các nút không hoạt động, vui lòng sao chép và dán link dưới đây vào trình duyệt:</p>
-              <p style="color: #9ca3af; font-size: 11px; word-break: break-all; text-align: center;">Chấp nhận: ${offerDetails.acceptUrl}</p>
-              <p style="color: #9ca3af; font-size: 11px; word-break: break-all; text-align: center;">Từ chối: ${offerDetails.declineUrl}</p>
+              <p style="color: #9ca3af; font-size: 12px; text-align: center;">Nếu nút không hoạt động, vui lòng sao chép và dán link dưới đây vào trình duyệt:</p>
+              <p style="color: #9ca3af; font-size: 11px; word-break: break-all; text-align: center;">${offerDetails.responseUrl}</p>
             </div>
             
             <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">

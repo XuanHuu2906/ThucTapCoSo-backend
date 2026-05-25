@@ -3,8 +3,15 @@ import { offerRepository } from '../repositories/offer.repository.js';
 import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { emailService } from './email.service.js';
+import { configService } from './config.service.js';
+import { userRepository } from '../repositories/user.repository.js';
+import { notificationEmitter } from '../events/notification.events.js';
 
 export class ProbationService {
+  private async getUserRole(userId: number) {
+    const user = await userRepository.findById(userId);
+    return user?.role;
+  }
   async getEndingSoon() {
     return probationRepository.findEndingSoon(7);
   }
@@ -75,10 +82,16 @@ export class ProbationService {
       throw new AppError('You are not authorized to evaluate this probation', HTTP_STATUS.FORBIDDEN);
     }
 
-    return probationRepository.upsertEvaluation(probationId, {
+    const result = await probationRepository.upsertEvaluation(probationId, {
       ...data,
       submittedBy: userId,
     });
+
+    if (result.status === 'PendingApproval') {
+      notificationEmitter.emit('probation.pending_approval', { probation });
+    }
+
+    return result;
   }
 
   async approveEvaluation(probationId: number, userId: number, status: string, directorNote?: string) {
@@ -90,6 +103,15 @@ export class ProbationService {
 
     if (probation.evaluation.status !== 'PendingApproval') {
       throw new AppError('Evaluation is not pending approval', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    // Load config
+    const highLevelPositions = await configService.getConfig('HIGH_LEVEL_POSITIONS') || [];
+    const isHighLevel = highLevelPositions.includes(probation.offer?.application?.jobPosting?.title);
+
+    const userRole = await this.getUserRole(userId);
+    if (isHighLevel && userRole === 'HiringManager') {
+      throw new AppError('This probation evaluation requires Director approval due to the position level.', HTTP_STATUS.FORBIDDEN);
     }
 
     const result = await probationRepository.approveEvaluation(probation.evaluation.evalId, {
@@ -109,6 +131,11 @@ export class ProbationService {
         }
       );
     }
+
+    notificationEmitter.emit('probation.director_responded', { 
+      probation: { ...probation, status: result.recommendation === 'Pass' && status === 'Approved' ? 'Pass' : 'Fail' }, 
+      recruiterId: probation.offer?.createdBy 
+    });
 
     return result;
   }

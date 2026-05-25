@@ -15,6 +15,7 @@ model User {
   email     String   @unique @map("Email") @db.VarChar(150)
   password  String   @map("Password") @db.VarChar(255)
   role      String   @map("Role") // Admin, Recruiter, HiringManager, Director, Probationer
+  department String? @map("Department") @db.VarChar(100)
   status    String   @default("Active") @map("Status") // Active, Inactive
   createdAt DateTime @default(now()) @map("CreatedAt")
 
@@ -27,6 +28,8 @@ model User {
   supervisedProbations Probation[]           @relation("Supervisors")
   submittedEvaluations ProbationEvaluation[] @relation("SubmittedEvaluations")
   approvedEvaluations  ProbationEvaluation[] @relation("ApprovedEvaluations")
+  updatedConfigs       SystemConfig[]        @relation("UpdatedConfigs")
+  notifications        Notification[]        @relation("UserNotifications")
 
   @@map("User")
 }
@@ -175,4 +178,39 @@ model ProbationEvaluation {
   approvedByUser  User?     @relation("ApprovedEvaluations", fields: [approvedBy], references: [userId], onUpdate: NoAction, onDelete: NoAction)
 
   @@map("ProbationEvaluation")
+}
+
+// 9. SYSTEM CONFIG
+model SystemConfig {
+  key         String   @id @map("Key") @db.VarChar(100)
+  value       String   @map("Value") @db.Text
+  description String?  @map("Description") @db.Text
+  updatedById Int?     @map("UpdatedBy")
+  createdAt   DateTime @default(now()) @map("CreatedAt")
+  updatedAt   DateTime @default(now()) @updatedAt @map("UpdatedAt")
+
+  updatedByUser User?  @relation("UpdatedConfigs", fields: [updatedById], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  @@map("SystemConfig")
+}
+
+// 10. NOTIFICATION
+model Notification {
+  id         Int       @id @default(autoincrement()) @map("NotificationID")
+  userId     Int       @map("UserID")
+  title      String    @map("Title") @db.VarChar(200)
+  message    String    @map("Message") @db.Text
+  type       String    @default("INFO") @map("Type") @db.VarChar(50) // INFO, SUCCESS, WARNING, ERROR
+  actionUrl  String?   @map("ActionUrl") @db.Text
+  isRead     Boolean   @default(false) @map("IsRead")
+  readAt     DateTime? @map("ReadAt")
+  entityType String?   @map("EntityType") @db.VarChar(50)
+  entityId   Int?      @map("EntityID")
+  createdAt  DateTime  @default(now()) @map("CreatedAt")
+  
+  user       User      @relation("UserNotifications", fields: [userId], references: [userId], onUpdate: NoAction, onDelete: NoAction)
+
+  @@index([userId, isRead])
+  @@index([entityType, entityId])
+  @@map("Notification")
 }

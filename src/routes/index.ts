@@ -9,6 +9,8 @@ import offerResponseRoutes from './v1/offer-response.routes.js';
 import probationRoutes from './v1/probation.routes.js';
 import userRoutes from './v1/user.routes.js';
 import statsRoutes from './v1/stats.routes.js';
+import configRoutes from './v1/config.routes.js';
+import notificationRoutes from './v1/notification.routes.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
@@ -29,5 +31,7 @@ router.use('/offer-response', offerResponseRoutes); // UC-10: Public (kh√¥ng c·∫
 router.use('/probations', probationRoutes);
 router.use('/users', userRoutes);
 router.use('/stats', statsRoutes); // UC-15, UC-16: Stats/Reports
+router.use('/config', configRoutes); // UC-19: System Config
+router.use('/notifications', notificationRoutes);
 
 export default router;

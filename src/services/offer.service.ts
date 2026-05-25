@@ -5,8 +5,15 @@ import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { emailService } from './email.service.js';
 import { authService } from './auth.service.js';
+import { configService } from './config.service.js';
+import { userRepository } from '../repositories/user.repository.js';
+import { notificationEmitter } from '../events/notification.events.js';
 
 export class OfferService {
+  private async getUserRole(userId: number) {
+    const user = await userRepository.findById(userId);
+    return user?.role;
+  }
   async getOffers(filters: any) {
     return offerRepository.findAll(filters);
   }
@@ -40,6 +47,8 @@ export class OfferService {
       status: 'Pending',
     });
 
+    notificationEmitter.emit('offer.pending_approval', { offer: newOffer });
+
     return newOffer;
   }
 
@@ -70,6 +79,20 @@ export class OfferService {
       throw new AppError(`Cannot approve/reject an offer that is currently ${offer.status}`, HTTP_STATUS.BAD_REQUEST);
     }
 
+    // Load configs
+    const salaryThreshold = await configService.getConfig('DIRECTOR_SALARY_THRESHOLD');
+    const highLevelPositions = await configService.getConfig('HIGH_LEVEL_POSITIONS') || [];
+
+    const requireDirectorApproval =
+      Number(offer.baseSalary) >= Number(salaryThreshold) ||
+      highLevelPositions.includes(offer.application?.jobPosting?.title);
+
+    // If it requires Director approval, only Director/Admin can approve
+    const userRole = await this.getUserRole(userId); // Need to get user role
+    if (requireDirectorApproval && userRole === 'HiringManager') {
+      throw new AppError('This offer requires Director approval due to salary threshold or position level.', HTTP_STATUS.FORBIDDEN);
+    }
+
     const result = await offerRepository.updateStatus(offerId, {
       status,
       approvedBy: userId,
@@ -92,12 +115,13 @@ export class OfferService {
             basicSalary: Number(offer.baseSalary),
             probationSalary: Number(offer.baseSalary) * 0.85,
             startDate: offer.startDate,
-            acceptUrl: `${frontendUrl}/offer-response/${decisionToken}?action=accept`,
-            declineUrl: `${frontendUrl}/offer-response/${decisionToken}?action=decline`,
+            responseUrl: `${frontendUrl}/offer-response/${decisionToken}`,
           }
         );
       }
     }
+
+    notificationEmitter.emit('offer.director_responded', { offer: { ...offer, status }, recruiterId: offer.createdBy });
 
     return result;
   }
@@ -131,7 +155,7 @@ export class OfferService {
       // Cập nhật Application → Hired
       await applicationRepository.updateStatus(offer.appId, 'Hired');
       // Clear token (dùng 1 lần)
-      await offerRepository.clearToken(offer.offerId);
+      // await offerRepository.clearToken(offer.offerId);
 
       // REQ-019: Tự động tạo tài khoản Probationer + gửi email thông tin đăng nhập
       const app = await applicationRepository.findById(offer.appId);
@@ -154,6 +178,8 @@ export class OfferService {
         }
       }
 
+      notificationEmitter.emit('offer.candidate_responded', { offer: { ...offer, status: 'Accepted' }, recruiterId: offer.createdBy });
+
       return { decision: 'accepted' };
     } else {
       // Decline
@@ -162,7 +188,10 @@ export class OfferService {
       }
       await offerRepository.updateStatus(offer.offerId, { status: 'Declined' });
       await offerRepository.setDeclineReason(offer.offerId, declineReason.trim());
-      await offerRepository.clearToken(offer.offerId);
+      await applicationRepository.updateStatus(offer.appId, 'Rejected');
+      // await offerRepository.clearToken(offer.offerId);
+
+      notificationEmitter.emit('offer.candidate_responded', { offer: { ...offer, status: 'Declined' }, recruiterId: offer.createdBy });
 
       return { decision: 'declined' };
     }

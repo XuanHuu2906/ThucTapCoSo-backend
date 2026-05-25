@@ -4,6 +4,7 @@ import { applicationRepository } from '../repositories/application.repository.js
 import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { emailService } from './email.service.js';
+import { notificationEmitter } from '../events/notification.events.js';
 
 export class InterviewService {
   async getInterviews(filters: any) {
@@ -60,6 +61,8 @@ export class InterviewService {
       );
     }
 
+    notificationEmitter.emit('interview.assigned', { interview: newInterview, application: app });
+
     return newInterview;
   }
 
@@ -77,7 +80,7 @@ export class InterviewService {
 
     if (isChangingInterviewer || isChangingDate) {
       updateData.confirmStatus = 'Pending';
-      
+
       const newInterviewerId = data.interviewerId ? Number(data.interviewerId) : interview.interviewerId;
       const newDate = data.interviewDate ? new Date(data.interviewDate) : interview.interviewDate;
 
@@ -87,7 +90,30 @@ export class InterviewService {
       }
     }
 
-    return interviewRepository.update(interviewId, updateData);
+    const updatedInterview = await interviewRepository.update(interviewId, updateData);
+
+    // UC-06: Gửi lại email xác nhận nếu có thay đổi ngày hoặc người phỏng vấn
+    if (isChangingInterviewer || isChangingDate) {
+      const app = interview.application;
+      if (app && app.candidate && app.jobPosting && interview.confirmToken) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        emailService.sendInterviewInvitation(
+          app.candidate.email,
+          app.candidate.fullName,
+          app.jobPosting.title,
+          {
+            interviewDate: updatedInterview.interviewDate,
+            location: updatedInterview.location || interview.location || '',
+            type: updatedInterview.type || interview.type,
+            confirmUrl: `${frontendUrl}/interview-confirm/${interview.confirmToken}`,
+          },
+          true // isRescheduled
+        );
+      }
+    }
+
+    notificationEmitter.emit('interview.updated', { interview: updatedInterview });
+    return updatedInterview;
   }
 
   async confirmInterview(interviewId: number, userId: number, userRole: string, status: string) {
@@ -114,7 +140,10 @@ export class InterviewService {
     //   throw new AppError('Cannot evaluate an interview that is not confirmed', HTTP_STATUS.BAD_REQUEST);
     // }
 
-    return interviewRepository.evaluate(interviewId, data);
+    const evaluatedInterview = await interviewRepository.evaluate(interviewId, data);
+    const hmName = (user as any).fullName || "Hiring Manager";
+    notificationEmitter.emit('interview.evaluated', { interview: evaluatedInterview, job: interview.application.jobPosting, hmName });
+    return evaluatedInterview;
   }
 
   async deleteInterview(interviewId: number) {
@@ -145,8 +174,22 @@ export class InterviewService {
       throw new AppError('Lịch phỏng vấn này đã được phản hồi trước đó', HTTP_STATUS.BAD_REQUEST);
     }
 
-    await interviewRepository.updateConfirmStatus(interview.interviewId, decision === 'confirmed' ? 'Confirmed' : 'Declined');
-    await interviewRepository.clearConfirmToken(interview.interviewId);
+    const updatedStatus = decision === 'confirmed' ? 'Confirmed' : 'Declined';
+    await interviewRepository.updateConfirmStatus(interview.interviewId, updatedStatus);
+    // await interviewRepository.clearConfirmToken(interview.interviewId); // Giữ lại token để ứng viên click lại sẽ thấy "Đã phản hồi trước đó" thay vì 404
+
+    notificationEmitter.emit('interview.candidate_responded', {
+      interview: { ...interview, confirmStatus: updatedStatus },
+      application: interview.application,
+      job: interview.application.jobPosting
+    });
+
+    notificationEmitter.emit('interview.candidate_responded_hm', { interview: { ...interview, confirmStatus: updatedStatus } });
+
+    if (updatedStatus === 'Declined') {
+      // Cập nhật trạng thái ứng viên thành Rejected khi từ chối phỏng vấn
+      await applicationRepository.updateStatus(interview.appId, 'Rejected');
+    }
 
     return { decision: decision === 'confirmed' ? 'confirmed' : 'declined' };
   }

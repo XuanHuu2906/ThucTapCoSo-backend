@@ -29,8 +29,8 @@ router.put('/:id', roleMiddleware(recruiterRoles), validate(updateProbationSchem
 const supervisorRoles = ['HiringManager', 'Director', 'Recruiter', 'Admin'];
 router.put('/:id/evaluate', roleMiddleware(supervisorRoles), validate(evaluateProbationSchema), probationController.evaluateProbation);
 
-// Director/Admin approves evaluation
-const directorRoles = ['Director', 'Admin'];
-router.patch('/:id/approve', roleMiddleware(directorRoles), validate(approveEvaluationSchema), probationController.approveEvaluation);
+// Director/Admin/HiringManager approves evaluation
+const approverRoles = ['Director', 'Admin', 'HiringManager'];
+router.patch('/:id/approve', roleMiddleware(approverRoles), validate(approveEvaluationSchema), probationController.approveEvaluation);
 
 export default router;
