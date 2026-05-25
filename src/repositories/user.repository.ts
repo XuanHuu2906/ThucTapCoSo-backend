@@ -16,6 +16,7 @@ export class UserRepository {
         fullName: true,
         email: true,
         role: true,
+        department: true,
         status: true,
         createdAt: true,
       },
@@ -36,6 +37,7 @@ export class UserRepository {
         fullName: true,
         email: true,
         role: true,
+        department: true,
         status: true,
       },
     });
@@ -56,10 +58,44 @@ export class UserRepository {
         fullName: true,
         email: true,
         role: true,
+        department: true,
         status: true,
         createdAt: true,
       },
     });
+  }
+
+  async update(userId: number, data: Prisma.UserUpdateInput) {
+    return prisma.user.update({
+      where: { userId },
+      data,
+      select: {
+        userId: true,
+        fullName: true,
+        email: true,
+        role: true,
+        department: true,
+        status: true,
+      },
+    });
+  }
+
+  async countActiveAdmins() {
+    return prisma.user.count({
+      where: {
+        role: 'Admin',
+        status: 'Active',
+      },
+    });
+  }
+
+  async getDistinctDepartments() {
+    const users = await prisma.user.findMany({
+      where: { department: { not: null } },
+      select: { department: true },
+      distinct: ['department'],
+    });
+    return users.map(u => u.department).filter(Boolean) as string[];
   }
 }
 

@@ -14,6 +14,8 @@ async function main() {
   await prisma.application.deleteMany();
   await prisma.jobPosting.deleteMany();
   await prisma.candidate.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.systemConfig.deleteMany();
   await prisma.user.deleteMany();
 
   // Reset sequences (PostgreSQL)

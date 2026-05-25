@@ -28,8 +28,8 @@ router.delete('/:id', roleMiddleware(recruiterRoles), offerController.deleteOffe
 // Recruiter updates status to Sent, Accepted, Declined
 router.patch('/:id/status', roleMiddleware(recruiterRoles), validate(updateOfferStatusSchema), offerController.updateOfferStatus);
 
-// Director/Admin only routes for approving
-const directorRoles = ['Director', 'Admin'];
-router.patch('/:id/approve', roleMiddleware(directorRoles), validate(approveOfferSchema), offerController.approveOffer);
+// Director/HiringManager/Admin routes for approving (Service will validate threshold)
+const approverRoles = ['Director', 'Admin', 'HiringManager'];
+router.patch('/:id/approve', roleMiddleware(approverRoles), validate(approveOfferSchema), offerController.approveOffer);
 
 export default router;

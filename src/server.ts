@@ -1,6 +1,8 @@
 import app from './app.js';
 import { env } from './config/env.js';
 import { startScheduler } from './services/scheduler.service.js';
+import { configService } from './services/config.service.js';
+import './events/notification.listeners.js';
 
 const startServer = () => {
   try {
@@ -11,6 +13,8 @@ const startServer = () => {
       // UC-12: Khởi động scheduler gửi email nhắc nhở đánh giá thử việc
       if (env.NODE_ENV !== 'test') {
         startScheduler();
+        // Initialize default configs (UC-19)
+        configService.initializeDefaults().catch(err => console.error('Failed to init configs:', err));
       }
     });
   } catch (error) {

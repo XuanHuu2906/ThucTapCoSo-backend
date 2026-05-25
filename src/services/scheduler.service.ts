@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../config/prisma.js';
 import { probationRepository } from '../repositories/probation.repository.js';
 import { emailService } from './email.service.js';
+import { notificationEmitter } from '../events/notification.events.js';
 
 /**
  * UC-12: Khởi tạo các scheduled tasks
@@ -22,6 +23,8 @@ export const startScheduler = () => {
       console.log(`[Scheduler] Found ${probations.length} probations ending soon.`);
 
       for (const probation of probations) {
+        const daysLeft = Math.ceil((new Date(probation.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+        
         // Gửi email cho supervisor (Hiring Manager)
         if (probation.supervisor?.email) {
           await emailService.sendProbationReminder(
@@ -30,6 +33,7 @@ export const startScheduler = () => {
             probation.probationer.fullName,
             probation.endDate,
           );
+          notificationEmitter.emit('probation.evaluation_reminder', { probation, hmId: probation.supervisorId, daysLeft });
           console.log(`[Scheduler] Reminder sent to HM ${probation.supervisor.email} for ${probation.probationer.fullName}`);
         }
 
@@ -48,6 +52,7 @@ export const startScheduler = () => {
                 probation.probationer.fullName,
                 probation.endDate,
               );
+              notificationEmitter.emit('probation.reminder_due', { probation, recruiterId: postedBy, daysLeft });
               console.log(`[Scheduler] CC reminder sent to Recruiter ${recruiter.email}`);
             }
           } catch (err) {
@@ -57,6 +62,27 @@ export const startScheduler = () => {
       }
     } catch (error) {
       console.error('[Scheduler] Error checking probations:', error);
+    }
+
+    console.log('[Scheduler] Checking interviews needing evaluation...');
+    try {
+      // Find interviews in the past that have result == 'Pending' and confirmStatus == 'Confirmed'
+      const pendingInterviews = await prisma.interview.findMany({
+        where: {
+          result: 'Pending',
+          confirmStatus: 'Confirmed',
+          interviewDate: {
+            lt: new Date()
+          }
+        }
+      });
+
+      console.log(`[Scheduler] Found ${pendingInterviews.length} pending interviews for evaluation.`);
+      for (const interview of pendingInterviews) {
+        notificationEmitter.emit('interview.evaluation_reminder', { interview });
+      }
+    } catch (error) {
+      console.error('[Scheduler] Error checking interviews:', error);
     }
   });
 

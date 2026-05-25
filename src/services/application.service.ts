@@ -3,6 +3,7 @@ import { jobRepository } from '../repositories/job.repository.js';
 import { AppError } from '../utils/appError.js';
 import { HTTP_STATUS } from '../constants/httpStatus.js';
 import { emailService } from './email.service.js';
+import { notificationEmitter } from '../events/notification.events.js';
 
 export class ApplicationService {
   async getApplications(filters: { jobId?: number; status?: string }) {
@@ -42,6 +43,8 @@ export class ApplicationService {
         data.fullName, 
         job.title
       );
+
+      notificationEmitter.emit('application.created', { app: application, job });
 
       return application;
     } catch (error: any) {
