@@ -3,7 +3,7 @@
 import type { CorsOptions } from 'cors';
 
 const allowedOrigins: Record<string, string[]> = {
-  development: ['http://localhost:5173', 'http://localhost:3000'],
+  development: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174'],
   production: ['https://thuctapcoso-frontend.onrender.com', 'https://huunguyen.xyz'],
   test: ['http://localhost:5173'],
 };

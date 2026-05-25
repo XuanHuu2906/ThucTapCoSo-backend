@@ -98,6 +98,7 @@ model Interview {
   location       String?  @map("Location") @db.VarChar(200)
   type           String   @map("Type") // HR, Technical, Final
   confirmStatus  String   @default("Pending") @map("ConfirmStatus") // Pending, Confirmed, Declined
+  confirmToken   String?  @unique @map("ConfirmToken") @db.VarChar(128)
   technicalScore Int?     @map("TechnicalScore")
   softScore      Int?     @map("SoftScore")
   attitudeScore  Int?     @map("AttitudeScore")

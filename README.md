@@ -7,7 +7,7 @@ Dự án Backend API cho hệ thống quản lý tuyển dụng (Recruitment Man
 - **Runtime:** Node.js
 - **Framework:** Express.js v5
 - **Ngôn ngữ:** TypeScript
-- **Database:** SQL Server
+- **Database:** PostgreSQL
 - **ORM:** Prisma
 - **Xác thực:** JSON Web Token (JWT) & bcryptjs
 - **Upload file:** Multer & Cloudinary
