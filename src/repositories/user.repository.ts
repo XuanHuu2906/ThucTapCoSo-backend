@@ -41,6 +41,13 @@ export class UserRepository {
     });
   }
 
+  async updatePassword(userId: number, hashedPassword: string) {
+    return prisma.user.update({
+      where: { userId },
+      data: { password: hashedPassword },
+    });
+  }
+
   async create(data: Prisma.UserCreateInput) {
     return prisma.user.create({
       data,

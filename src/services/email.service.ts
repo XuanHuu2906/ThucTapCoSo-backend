@@ -64,6 +64,7 @@ export const emailService = {
 
   /**
    * REQ-012: Gửi email mời phỏng vấn
+   * UC-06: Bao gồm link xác nhận/từ chối cho ứng viên
    */
   async sendInterviewInvitation(email: string, candidateName: string, jobTitle: string, interviewDetails: any) {
     try {
@@ -73,23 +74,56 @@ export const emailService = {
         timeStyle: 'short',
       });
 
+      const confirmUrl = interviewDetails.confirmUrl;
+
       await resend.emails.send({
         from: `Recruitment System <${SENDER_EMAIL}>`,
         to: email,
         subject: `Thư mời tham gia phỏng vấn - Vị trí ${jobTitle}`,
         html: `
-          <h3>Xin chào ${candidateName},</h3>
-          <p>Chúc mừng bạn đã vượt qua vòng sơ loại hồ sơ cho vị trí <strong>${jobTitle}</strong>.</p>
-          <p>Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn với thông tin chi tiết như sau:</p>
-          <ul>
-            <li><strong>Thời gian:</strong> ${formattedDate}</li>
-            <li><strong>Địa điểm / Link họp:</strong> ${interviewDetails.location}</li>
-            <li><strong>Hình thức phỏng vấn:</strong> ${interviewDetails.type}</li>
-          </ul>
-          <p>Vui lòng sắp xếp thời gian tham dự và phản hồi lại email này hoặc truy cập hệ thống để xác nhận tham gia.</p>
-          <br/>
-          <p>Trân trọng,</p>
-          <p><strong>Phòng Tuyển dụng</strong></p>
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Thư mời phỏng vấn</h1>
+              <p style="color: #e8e0ff; margin-top: 8px; font-size: 14px;">Chúc mừng bạn đã vượt qua vòng sơ loại hồ sơ</p>
+            </div>
+
+            <div style="padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+              <h3 style="color: #1f2937; margin-top: 0;">Xin chào ${candidateName},</h3>
+              <p style="color: #4b5563; line-height: 1.6;">Chúng tôi trân trọng mời bạn tham gia buổi phỏng vấn cho vị trí <strong style="color: #667eea;">${jobTitle}</strong> với thông tin chi tiết như sau:</p>
+
+              <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea;">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Thời gian:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; text-align: right;">${formattedDate}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Địa điểm / Link họp:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; text-align: right;">${interviewDetails.location}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Hình thức:</td>
+                    <td style="padding: 8px 0; color: #1f2937; font-weight: 600; text-align: right;">${interviewDetails.type}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="color: #4b5563; line-height: 1.6;">Vui lòng xác nhận tham gia bằng cách chọn một trong hai lựa chọn bên dưới:</p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${confirmUrl}?action=confirm" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; margin-right: 12px;">✅ Đồng ý tham gia</a>
+                <a href="${confirmUrl}?action=decline" style="display: inline-block; background: #ffffff; color: #ef4444; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; border: 2px solid #ef4444;">❌ Từ chối</a>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              <p style="color: #9ca3af; font-size: 12px; text-align: center;">Nếu các nút không hoạt động, vui lòng sao chép và dán link dưới đây vào trình duyệt:</p>
+              <p style="color: #9ca3af; font-size: 11px; word-break: break-all; text-align: center;">${confirmUrl}</p>
+            </div>
+
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0;">Trân trọng,<br/><strong>Phòng Tuyển dụng</strong></p>
+            </div>
+          </div>
         `,
       });
     } catch (error) {
@@ -190,23 +224,77 @@ export const emailService = {
   /**
    * REQ-022: Gửi email nhắc nhở HM đánh giá thử việc
    */
-  async sendProbationReminder(hmEmail: string, hmName: string, probationerName: string) {
+  async sendProbationReminder(hmEmail: string, hmName: string, probationerName: string, endDate?: Date) {
     try {
+      const formattedEndDate = endDate
+        ? new Date(endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : 'sắp tới';
+
       await resend.emails.send({
         from: `Recruitment System <${SENDER_EMAIL}>`,
         to: hmEmail,
         subject: `Nhắc nhở: Đánh giá thử việc - ${probationerName}`,
         html: `
-          <h3>Xin chào ${hmName},</h3>
-          <p>Hệ thống thông báo nhân viên thử việc <strong>${probationerName}</strong> sắp hết hạn thời gian thử việc.</p>
-          <p>Vui lòng sắp xếp thời gian để vào hệ thống và hoàn thành Phiếu đánh giá kết quả thử việc cho nhân viên này.</p>
-          <br/>
-          <p>Trân trọng,</p>
-          <p><strong>Hệ thống Quản lý Tuyển dụng</strong></p>
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="color: #ffffff; margin: 0;">Nhắc nhở đánh giá thử việc</h2>
+            </div>
+            <div style="padding: 30px; border: 1px solid #e5e7eb; border-top: none; background: #ffffff;">
+              <h3 style="color: #1f2937;">Xin chào ${hmName},</h3>
+              <p style="color: #4b5563; line-height: 1.6;">Hệ thống thông báo nhân viên thử việc <strong>${probationerName}</strong> sẽ hết hạn thử việc vào ngày <strong>${formattedEndDate}</strong>.</p>
+              <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                <p style="margin: 0; color: #92400e; font-weight: 600;">⚠️ Vui lòng hoàn thành đánh giá trước ngày kết thúc thử việc.</p>
+              </div>
+              <p style="color: #4b5563; line-height: 1.6;">Vui lòng truy cập hệ thống để hoàn thành Phiếu đánh giá kết quả thử việc cho nhân viên này.</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/manager/reviews" style="display: inline-block; background: #f59e0b; color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">Đánh giá ngay</a>
+              </div>
+            </div>
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0;">Trân trọng,<br/><strong>Hệ thống Quản lý Tuyển dụng</strong></p>
+            </div>
+          </div>
         `,
       });
     } catch (error) {
       console.error('Error sending probation reminder email:', error);
+    }
+  },
+
+  /**
+   * REQ-003: Gửi email đặt lại mật khẩu
+   */
+  async sendPasswordReset(email: string, fullName: string, resetUrl: string) {
+    try {
+      await resend.emails.send({
+        from: `Recruitment System <${SENDER_EMAIL}>`,
+        to: email,
+        subject: 'Đặt lại mật khẩu',
+        html: `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="color: #ffffff; margin: 0;">Đặt lại mật khẩu</h2>
+            </div>
+            <div style="padding: 30px; border: 1px solid #e5e7eb; border-top: none; background: #ffffff;">
+              <h3 style="color: #1f2937;">Xin chào ${fullName},</h3>
+              <p style="color: #4b5563; line-height: 1.6;">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+              <p style="color: #4b5563; line-height: 1.6;">Vui lòng nhấn nút bên dưới để đặt lại mật khẩu. Link này có hiệu lực trong <strong>15 phút</strong>.</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: #ffffff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Đặt lại mật khẩu</a>
+              </div>
+              <p style="color: #9ca3af; font-size: 13px;">Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+              <p style="color: #9ca3af; font-size: 12px; text-align: center;">Nếu nút không hoạt động, vui lòng sao chép và dán link dưới đây vào trình duyệt:</p>
+              <p style="color: #9ca3af; font-size: 11px; word-break: break-all; text-align: center;">${resetUrl}</p>
+            </div>
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+              <p style="color: #6b7280; font-size: 13px; margin: 0;">Trân trọng,<br/><strong>Hệ thống Quản lý Tuyển dụng</strong></p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
     }
   },
 

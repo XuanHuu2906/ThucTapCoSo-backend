@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { interviewRepository } from '../repositories/interview.repository.js';
 import { applicationRepository } from '../repositories/application.repository.js';
 import { AppError } from '../utils/appError.js';
@@ -27,7 +28,7 @@ export class InterviewService {
     // Check for interviewer schedule conflicts
     const interviewDate = new Date(data.interviewDate);
     const conflict = await interviewRepository.findConflicts(Number(data.interviewerId), interviewDate);
-    
+
     if (conflict) {
       throw new AppError('Người phỏng vấn đã có lịch trong khoảng thời gian này. Vui lòng chọn giờ khác.', HTTP_STATUS.BAD_REQUEST);
     }
@@ -39,8 +40,13 @@ export class InterviewService {
       result: 'Pending',
     });
 
+    // UC-06: Generate confirm token + send email invitation with confirm/decline links
+    const confirmToken = crypto.randomUUID();
+    await interviewRepository.setConfirmToken(newInterview.interviewId, confirmToken);
+
     // REQ-012: Send interview invitation email
     if (app.candidate && app.jobPosting) {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       emailService.sendInterviewInvitation(
         app.candidate.email,
         app.candidate.fullName,
@@ -49,6 +55,7 @@ export class InterviewService {
           interviewDate: newInterview.interviewDate,
           location: newInterview.location,
           type: newInterview.type,
+          confirmUrl: `${frontendUrl}/interview-confirm/${confirmToken}`,
         }
       );
     }
@@ -114,6 +121,34 @@ export class InterviewService {
     await this.getInterviewById(interviewId);
     await interviewRepository.delete(interviewId);
     return { message: 'Interview deleted successfully' };
+  }
+
+  // ===== UC-06: Public endpoints cho ứng viên xác nhận/từ chối lịch PV =====
+
+  async getInterviewByToken(token: string) {
+    const interview = await interviewRepository.findByToken(token);
+    if (!interview) {
+      throw new AppError('Link xác nhận không tồn tại hoặc đã hết hạn', HTTP_STATUS.NOT_FOUND);
+    }
+    if (interview.confirmStatus !== 'Pending') {
+      throw new AppError('Lịch phỏng vấn này đã được phản hồi trước đó', HTTP_STATUS.BAD_REQUEST);
+    }
+    return interview;
+  }
+
+  async respondToInterview(token: string, decision: 'confirmed' | 'declined') {
+    const interview = await interviewRepository.findByToken(token);
+    if (!interview) {
+      throw new AppError('Link xác nhận không tồn tại hoặc đã hết hạn', HTTP_STATUS.NOT_FOUND);
+    }
+    if (interview.confirmStatus !== 'Pending') {
+      throw new AppError('Lịch phỏng vấn này đã được phản hồi trước đó', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    await interviewRepository.updateConfirmStatus(interview.interviewId, decision === 'confirmed' ? 'Confirmed' : 'Declined');
+    await interviewRepository.clearConfirmToken(interview.interviewId);
+
+    return { decision: decision === 'confirmed' ? 'confirmed' : 'declined' };
   }
 }
 

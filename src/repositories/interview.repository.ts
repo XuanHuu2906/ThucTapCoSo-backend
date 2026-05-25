@@ -138,6 +138,40 @@ export class InterviewRepository {
     });
   }
 
+  async findByToken(confirmToken: string) {
+    return prisma.interview.findUnique({
+      where: { confirmToken },
+      include: {
+        application: {
+          include: {
+            candidate: true,
+            jobPosting: true,
+          },
+        },
+        interviewer: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  async setConfirmToken(interviewId: number, token: string) {
+    return prisma.interview.update({
+      where: { interviewId },
+      data: { confirmToken: token },
+    });
+  }
+
+  async clearConfirmToken(interviewId: number) {
+    return prisma.interview.update({
+      where: { interviewId },
+      data: { confirmToken: null },
+    });
+  }
+
   async delete(interviewId: number) {
     return prisma.interview.delete({
       where: { interviewId },
