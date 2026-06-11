@@ -3,11 +3,17 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function check() {
-  const interviews = await prisma.interview.findMany({
-    select: { interviewId: true, confirmToken: true, confirmStatus: true, result: true }
+  const offers = await prisma.offer.findMany({
+    include: {
+      application: {
+        include: {
+          candidate: true,
+          jobPosting: true,
+        }
+      }
+    }
   });
-  console.log('Interviews in DB:');
-  console.table(interviews);
+  console.log('Offers in DB:', JSON.stringify(offers, null, 2));
 }
 
 check().catch(console.error).finally(() => prisma.$disconnect());

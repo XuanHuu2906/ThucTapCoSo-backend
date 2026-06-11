@@ -31,6 +31,13 @@ export class ApplicationRepository {
             deptName: true,
           },
         },
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            confirmStatus: true,
+          },
+        },
       },
     });
   }
@@ -45,6 +52,13 @@ export class ApplicationRepository {
           select: {
             fullName: true,
             email: true,
+          },
+        },
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            confirmStatus: true,
           },
         },
       },

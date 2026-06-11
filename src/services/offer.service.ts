@@ -8,6 +8,7 @@ import { authService } from './auth.service.js';
 import { configService } from './config.service.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { notificationEmitter } from '../events/notification.events.js';
+import { prisma } from '../config/prisma.js';
 
 export class OfferService {
   private async getUserRole(userId: number) {
@@ -176,6 +177,7 @@ export class OfferService {
         } catch (error: any) {
           console.error('Failed to create probationer account:', error);
         }
+        await this.createProbationForAcceptedOffer(offer);
       }
 
       notificationEmitter.emit('offer.candidate_responded', { offer: { ...offer, status: 'Accepted' }, recruiterId: offer.createdBy });
@@ -241,6 +243,7 @@ export class OfferService {
           console.error('Failed to create probationer account:', error);
           // Don't fail the whole request if user already exists
         }
+        await this.createProbationForAcceptedOffer(offer);
       }
     }
 
@@ -260,6 +263,49 @@ export class OfferService {
     await applicationRepository.updateStatus(offer.appId, 'Interviewing');
 
     return { message: 'Offer deleted successfully' };
+  }
+
+  private async createProbationForAcceptedOffer(offer: any) {
+    try {
+      const app = await applicationRepository.findById(offer.appId);
+      if (!app || !app.candidate) return;
+
+      // Check if probation already exists
+      const existingProbation = await prisma.probation.findUnique({
+        where: { offerId: offer.offerId },
+      });
+      if (existingProbation) return;
+
+      const registeredUser = await prisma.user.findUnique({
+        where: { email: app.candidate.email },
+      });
+      if (!registeredUser) return;
+
+      // Find supervisor (interviewer of the latest interview)
+      const latestInterview = await prisma.interview.findFirst({
+        where: { appId: offer.appId },
+        orderBy: { interviewDate: 'desc' },
+      });
+      const supervisorId = latestInterview ? latestInterview.interviewerId : null;
+
+      const startDate = new Date(offer.startDate);
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 90); // default 90 days
+
+      await prisma.probation.create({
+        data: {
+          offerId: offer.offerId,
+          probationerId: registeredUser.userId,
+          supervisorId,
+          startDate,
+          endDate,
+          status: 'Ongoing',
+        },
+      });
+      console.log(`Successfully created probation record for offer ${offer.offerId}`);
+    } catch (error) {
+      console.error('Failed to automatically create probation record:', error);
+    }
   }
 }
 
