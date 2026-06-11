@@ -17,15 +17,16 @@ router.post(
   applicationController.submitApplication
 );
 
-// Protected routes (Recruiter, Admin)
-const allowedRoles = ['Recruiter', 'Admin'];
+// Protected roles
+const viewRoles = ['Recruiter', 'Admin', 'Director', 'HiringManager'];
+const actionRoles = ['Recruiter', 'Admin'];
 
-router.get('/', authMiddleware, roleMiddleware(allowedRoles), applicationController.getApplications);
-router.get('/:id', authMiddleware, roleMiddleware(allowedRoles), applicationController.getApplicationById);
+router.get('/', authMiddleware, roleMiddleware(viewRoles), applicationController.getApplications);
+router.get('/:id', authMiddleware, roleMiddleware(viewRoles), applicationController.getApplicationById);
 router.patch(
   '/:id/status',
   authMiddleware,
-  roleMiddleware(allowedRoles),
+  roleMiddleware(actionRoles),
   validate(updateApplicationStatusSchema),
   applicationController.updateApplicationStatus
 );

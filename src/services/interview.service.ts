@@ -79,8 +79,6 @@ export class InterviewService {
     const isChangingDate = data.interviewDate && new Date(data.interviewDate).getTime() !== interview.interviewDate.getTime();
 
     if (isChangingInterviewer || isChangingDate) {
-      updateData.confirmStatus = 'Pending';
-
       const newInterviewerId = data.interviewerId ? Number(data.interviewerId) : interview.interviewerId;
       const newDate = data.interviewDate ? new Date(data.interviewDate) : interview.interviewDate;
 
@@ -90,10 +88,14 @@ export class InterviewService {
       }
     }
 
+    if (isChangingDate) {
+      updateData.confirmStatus = 'Pending';
+    }
+
     const updatedInterview = await interviewRepository.update(interviewId, updateData);
 
-    // UC-06: Gửi lại email xác nhận nếu có thay đổi ngày hoặc người phỏng vấn
-    if (isChangingInterviewer || isChangingDate) {
+    // UC-06: Gửi lại email xác nhận cho ứng viên nếu có thay đổi ngày giờ
+    if (isChangingDate) {
       const app = interview.application;
       if (app && app.candidate && app.jobPosting && interview.confirmToken) {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -141,7 +143,7 @@ export class InterviewService {
     // }
 
     const evaluatedInterview = await interviewRepository.evaluate(interviewId, data);
-    const hmName = (user as any).fullName || "Hiring Manager";
+    const hmName = interview.interviewer?.fullName || "Hiring Manager";
     notificationEmitter.emit('interview.evaluated', { interview: evaluatedInterview, job: interview.application.jobPosting, hmName });
     return evaluatedInterview;
   }

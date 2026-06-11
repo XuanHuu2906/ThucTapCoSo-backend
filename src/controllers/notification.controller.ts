@@ -42,7 +42,7 @@ export class NotificationController {
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
 
       const result = await notificationService.markAsRead(id, userId);
       res.status(200).json(result);
