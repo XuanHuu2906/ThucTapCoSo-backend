@@ -290,7 +290,8 @@ export class OfferService {
 
       const startDate = new Date(offer.startDate);
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + 90); // default 90 days
+      const days = offer.probationDays ? Number(offer.probationDays) : 90;
+      endDate.setDate(endDate.getDate() + days);
 
       await prisma.probation.create({
         data: {

@@ -124,6 +124,7 @@ model Offer {
   baseSalary   Decimal  @map("BaseSalary") @db.Decimal(15, 2)
   allowance    Decimal  @default(0) @map("Allowance") @db.Decimal(15, 2)
   startDate    DateTime @map("StartDate") @db.Date
+  probationDays Int      @default(60) @map("ProbationDays")
   status        String   @default("Pending") @map("Status") // Pending, Approved, Accepted, Rejected, Declined
   directorNote  String?  @map("DirectorNote") @db.Text
   decisionToken String?  @map("DecisionToken") @db.VarChar(128)
