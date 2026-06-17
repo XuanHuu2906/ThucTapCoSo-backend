@@ -45,17 +45,19 @@ npm install
 Tạo file `.env` ở thư mục gốc (ngang hàng với `package.json`) dựa trên `.env.example` (nếu có) hoặc điền các thông tin sau:
 
 ```env
-PORT=...
-DATABASE_URL="sqlserver://<HOST>:<PORT>;database=<DB_NAME>;user=<USER>;password=<PASSWORD>;encrypt=true;trustServerCertificate=true"
+PORT=5000
+DATABASE_URL="postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB_NAME>?schema=public"
+DIRECT_URL="postgresql://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB_NAME>?schema=public"
 JWT_SECRET=...
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
+RESEND_API_KEY=...
 ```
 
 ### 3. Khởi tạo Database (Prisma)
 
-Đảm bảo SQL Server đang chạy, sau đó thực hiện các lệnh sau để tạo bảng và nạp dữ liệu mẫu (Seeding):
+Đảm bảo PostgreSQL đang chạy, sau đó thực hiện các lệnh sau để tạo bảng và nạp dữ liệu mẫu (Seeding):
 
 ```bash
 # Push schema vào database (hoặc dùng migrate dev)
